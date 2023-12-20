@@ -17,7 +17,9 @@ class Element:
     def get_abs_score(self,prior_val,stance,shape):
         r=1
 
-        if prior_val==4 and stance==ATTACK:
+        if prior_val==5 and stance==ATTACk:
+            r=13
+        elif prior_val==4 and stance==ATTACK:
             r=9
         elif prior_val==4 and stance==DEFENSE:
             r=7
