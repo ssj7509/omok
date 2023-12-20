@@ -1,5 +1,0 @@
-웹 인공지능
-https://gomocalc.com/#/h8h9g9f10g7g8f6e5f7f8h7e7g6e8i7j7j6k5i6h6i9
-
-numba 실수형 출력
-https://github.com/numba/numba/issues/8969
