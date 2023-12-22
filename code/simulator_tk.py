@@ -6,7 +6,7 @@ from tkinter import filedialog,simpledialog
 from tk_header import *
 
 import math,random
-import analyzer as anl
+import analyzer_v2 as anl
 import benchmark_learning as bml
 import randomforest_learning as rfl
 
@@ -447,13 +447,14 @@ def aiPlay(WD):
     if WD["cursor"]==0:
         addStone(WD,8,8)
         return
-    xyT,arrayT=anl.main_play(WD["xyList"][:WD["cursor"]],1)
-    xyL=bml.get_xy(xyT,arrayT,"10")
+
+    turn_group,turn=anl.main_play(WD["xyList"][:WD["cursor"]])
+    xyT,arrayT=anl.get_result(turn_group[turn].D1)
+
+    xyL=bml.get_xy(xyT,arrayT,"11")
     x,y=random.choice(xyL)
 
-    D2_spaces,turn=anl.main_play(WD["xyList"][:WD["cursor"]],0)
-
-    print(f"({x+1},{y+1}),{D2_spaces[anl.D1][turn][(x,y)].max_abs}")
+    print(f"({x+1},{y+1}),{turn_group[turn].D1[(x,y)].max_abs}")
 
     addStone(WD,x+1,y+1)
 
@@ -608,12 +609,11 @@ def refreshOption(WD):
     if 1-WD["optRadioVal"].get():
         return
     
-    D2_spaces,turn=anl.main_play(WD["xyList"][:WD["cursor"]],0)
-    xyL,arrayT=anl.main_play(WD["xyList"][:WD["cursor"]],1)
-    element_dict=get_D1_elements(D2_spaces,turn)
+    turn_group,turn=anl.main_play(WD["xyList"][:WD["cursor"]])
+    element_dict=get_D1_elements(turn_group,turn)
 
     opt_normalL,opt_triggerL=(getOption1_2,getOption2_S)[bool(WD["contentL2_S"])](WD,element_dict)
-    banL=getBanL(D2_spaces[anl.BAN])
+    banL=getBanL(turn_group[anl.BLACK].ban_dict)
     print(banL)
 
     setOptionMark(WD,opt_normalL,opt_triggerL)
@@ -691,10 +691,10 @@ def getContentName(T):
         s+=f"방어 {T[4]} :: {T[2]+1}등급"
     return s
 
-def get_D1_elements(D2_spaces,turn):
+def get_D1_elements(turn_group,turn):
     element_dict={}
 
-    for space in D2_spaces[anl.D1][turn].values():
+    for space in turn_group[turn].D1.values():
         xyT=space.xyT
         for element in space.elementL:
             parents,lineT,prior_val,stance,shape,element_type=element.get_vars()
@@ -713,7 +713,7 @@ def refreshCount(WD):
     WD["countLabel"].config(text=f"{WD['cursor']}/{len(WD['xyList'])}")
     WD["checkLabel"].config(text=f"check point : {('None',cp)[bool(cp)]}")
     WD["turnLabel"].config(text=f"turn : {('BLACK','WHITE')[WD['cursor']%2]}")
-    WD["end"]=bool(anl.end_check(WD["xyList"][:WD["cursor"]]))
+    WD["end"]=bool(anl.end_check(WD["xyList"][:WD["cursor"]])[WD["cursor"]%2])
 
 def insert_Circle(WD,x,y,r,color):
     return WD["canvas"].create_oval(x*BW/16-r,y*BH/16-r,x*BW/16+r,y*BH/16+r,fill=color)

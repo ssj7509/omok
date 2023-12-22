@@ -1,5 +1,5 @@
 import numpy as np
-import analyzer as anl
+import analyzer_v2 as anl
 
 def converter(s):
     return [(x,int(y))for x,y in zip((ord(c)-96 for c in s if c.isalpha()),''.join((c,' ')[c.isalpha()]for c in s).split())]

@@ -3,22 +3,27 @@ import numpy as np
 #sys.setrecursionlimit(100000000)
 
 class Element:
-    def __init__(self,xyT,parents,lineT,prior_val,stance,shape,element_type):
+    def __init__(self,xyT,parents,option_p,lineT):
         self.xyT=xyT
         self.parents=parents
-        self.prior_val=prior_val
-        self.stance=stance
-        self.shape=shape
-        self.element_type=element_type
+        self.prior_val=option_p.prior_val
+        self.stance=option_p.stance
+        self.shape=option_p.shape
+        self.element_type=option_p.element_type
         self.lineT=lineT
-        self.abs_score=self.get_abs_score(prior_val,stance,shape)
-        self.D1_score=self.get_D1_score(prior_val,stance,shape,element_type)
+        self.abs_val=self.get_abs_val(self.prior_val,self.stance,self.shape)
 
-    def get_abs_score(self,prior_val,stance,shape):
+    def set_targetL(self,targetL):
+        self.targetL=targetL
+        self.valueL=[]
+
+    def get_abs_val(self,prior_val,stance,shape):
         r=1
 
-        if prior_val==5 and stance==ATTACk:
+        if prior_val==5 and stance==ATTACK:
             r=13
+        elif prior_val==5 and stance==DEFENSE:
+            r=11
         elif prior_val==4 and stance==ATTACK:
             r=9
         elif prior_val==4 and stance==DEFENSE:
@@ -29,42 +34,33 @@ class Element:
             r=3
 
         return r
-    
-    def get_D1_score(self,prior_val,stance,shape,element_type):
-        return
 
     def get_vars(self):
         return self.parents,self.lineT,self.prior_val,self.stance,self.shape,self.element_type
+    
+    def get_parameter_set(self):
+        option_p=Parameter_set(self.prior_val,self.stance,self.shape,self.element_type)
+
+        return self.xyT,self.parents,option_p,self.lineT
 
     def set_matrix(self,array):
         if self.element_type in (NORMAL,TARGET):
             array[1+self.stance*10+(self.prior_val-1)*(2,5)[self.stance]+self.shape]+=1
 
-class Trigger_element(Element):
-    def __init__(self,targetL,*p):
-        super().__init__(*p)
-        self.targetL=targetL
-        self.valueL=[]
-
-
-
 class Space:
-    def __init__(self,xyT,D2_spaces,turn):
+    def __init__(self,xyT,turn,turn_group):
         self.xyT=xyT
-        self.D2_spaces=D2_spaces
+        self.turn_group=turn_group
         self.turn=turn
-        self.line_score=[[0,0]for _ in range(4)]
         self.elementL=[]
         self.triggerL=[]
         self.trigger_valueL=[]
         self.target_set=set()
         self.max_abs=0
-        self.max_D1=0
-        self.D2_score=0
 
     def add_element(self,new_e):
         if new_e.element_type!=TARGET:
-            self.max_abs=max(self.max_abs,new_e.abs_score)
+            self.max_abs=max(self.max_abs,new_e.abs_val)
             
         deleteL=[]
         check=0
@@ -77,10 +73,7 @@ class Space:
             del self.elementL[self.elementL.index(de)]
         
         self.elementL.append(new_e)
-        
-        #self.add_trigger(new_e)
-        
-
+    
     def add_trigger(self,e):
         if e.element_type==TRIGGER:
             self.triggerL.append(e)
@@ -124,35 +117,14 @@ class Space:
         self.activate_trigger(normal,trigger)
     
     def get_predict_abs(self,e):
-        return Element.get_abs_score(None,e.prior_val+1,e.stance,e.shape)
-        
-    '''
-    def adjust_abs(self,e1,e2):
-        e1,e2=sorted((e1,e2),key=lambda e:(e.abs_score,e.prior_val,-e.shape))
-        
-        t=((e1.prior_val,e1.shape),(e2.prior_val,e2.shape))
-        
-        if self.turn==0 and t==((2,0),(3,1)):
-            self.max_abs=max(self.max_abs,5)
-        elif self.turn==1 and t in (((2,0),(3,1)),((2,2),(3,1))):
-            self.max_abs=max(self.max_abs,3)
-        elif self.turn==1 and double_check(e1,e2,lambda x:x.prior_val==3 and x.shape in (0,2)):
-            self.max_abs=max(self.max_abs,6)
-        elif self.turn==1 and double_check(e1,e2,lambda x:x.prior_val==4 and x.shape in (1,4)):
-            self.max_abs=max(self.max_abs,8)
-        elif self.turn==1 and double_check(e1,e2,lambda x:x.prior_val==2 and x.shape in (0,2)):
-            self.max_abs=max(self.max_abs,4)
-            self.adjust_33(e1,e2)
-    
-    '''
+        return Element.get_abs_val(None,e.prior_val+1,e.stance,e.shape)
     
     def adjust_abs(self,e1,e2):
-        e1,e2=sorted((e1,e2),key=lambda e:(e.abs_score,e.prior_val,-e.shape))
+        e1,e2=sorted((e1,e2),key=lambda e:(e.abs_val,e.prior_val,-e.shape))
         
         t=((e1.prior_val,e1.shape),(e2.prior_val,e2.shape))
         
         if e1.prior_val==2 and e1.shape==0 and e2.prior_val==3:
-            #print(self.turn,e1.stance,e1.element_type,self.xyT) 
             self.max_abs=max(self.max_abs,5)
             self.defense_nest(4)
 
@@ -166,17 +138,10 @@ class Space:
         elif double_check(e1,e2,lambda x:x.prior_val==2 and x.shape==OPENED):
             self.max_abs=max(self.max_abs,2*self.turn)
             self.defense_nest(1.5*(self.turn))
-            #self.adjust_33(e1,e2)
 
     def defense_nest(self,absN):
-        #print("check",self.xyT,self.turn,absN)
         defense_space=self.get_space(self.xyT,1)
         defense_space.max_abs=max(defense_space.max_abs,absN)
-        #print(defense_space.max_abs)
-    
-    def adjust_33(self,e1,e2):
-        self.D2_spaces[TEST2].append((self.turn,self.xyT,e1,e2))
-        #임시
 
     def parents_nest(self,e1,e2,deleteL):
         if compare_parents(e1.parents,e2.parents) or \
@@ -246,16 +211,18 @@ class Space:
 
     def activate_target(self,transfer_obj,target_xyT):
         target_space=self.get_space(target_xyT,0)
-        transfer_p=transfer_obj.get_vars()[:-1]
+        target_p=transfer_obj.get_parameter_set()
 
-        target_element=Element(target_xyT,*transfer_p,TARGET)
+        target_element=Element(*target_p)
+        target_element.element_type=TARGET
+
         target_space.add_element(target_element)
     
     def get_space(self,xyT,option):
         turn=option^self.turn
-        space_dict=self.D2_spaces[D1][turn]
+        space_dict=self.turn_group[turn].D1
         if not space_dict.get(xyT):
-            space_dict[xyT]=Space(xyT,self.D2_spaces,turn)
+            space_dict[xyT]=Space(xyT,turn,self.turn_group)
 
         return space_dict[xyT]
 
@@ -305,11 +272,12 @@ class Bancheck_space(Space):
         return 1
             
     def get_bancheck_space(self,xyT):
-        space_dict=self.D2_spaces[TEST]
-        if not space_dict.get(xyT):
-            space_dict[xyT]=Bancheck_space(xyT,self.D2_spaces,self.turn)
+        check_dict=self.turn_group[BLACK].check_dict
 
-        return space_dict[xyT]
+        if not check_dict.get(xyT):
+            check_dict[xyT]=Bancheck_space(xyT,self.turn,self.turn_group)
+
+        return check_dict[xyT]
 
     def linear_build_3(self,e1,e2,diff_set1,diff_set2,inter_set):
         return 1
@@ -325,7 +293,7 @@ class Bancheck_space(Space):
         ban_space.ban_name=ban_name
 
     def adjust_abs(self,e1,e2):
-        e1,e2=sorted((e1,e2),key=lambda e:(e.abs_score,e.prior_val,-e.shape))
+        e1,e2=sorted((e1,e2),key=lambda e:(e.abs_val,e.prior_val,-e.shape))
         
         t=((e1.prior_val,e1.shape),(e2.prior_val,e2.shape))
 
@@ -347,108 +315,96 @@ class Parents:
     def add_space(self,xyT,option_turn,shape):
         (self.attackS,self.defenseS)[option_turn].add((xyT,shape))
 
-def get_target_obj(xy,trigger_obj):
-    target_obj=copy.deepcopy(trigger_obj)
-    target_obj.xy=xy
+class Stone_group:
+    def __init__(self):
+        self.black={}
+        self.white={}
+        self.edge={}
+        self.entire={}
 
-def activate_trigger(D2_spaces,obj):
-    if obj.element_type!=TRIGGER:
-        return
-    for tobj in get_target_objL:
-        if not self.D2_spaces[D1][self.turn]:
-            self.D2_spaces[D1][self.turn]=space(self.xy,self.D2_spaces,self.turn)
+    def turn_dict(self,turn):
+        return (self.black,self.white)[turn]
 
-def get_entire():
-    return {BLACK:{},WHITE:{},EDGE:{},ENTIRE:{},END:0}
+class Space_group:
+    def __init__(self,parents_dict,ban_dict):
+        self.D1={}
+        self.D2={}
+        self.D3={}
+        self.parents_dict=parents_dict
+        self.ban_dict=ban_dict
 
-def get_D2_spaces():
-    return {D1:{BLACK:{},WHITE:{}},D2:{BLACK:{},WHITE:{}},BAN:{},
-            PARENTS:{ATTACK:{},DEFENSE:{}}}
+    def set_check_dict(self):
+        self.check_dict={}
 
-def get_D2_spaces():
-    return {D1:{BLACK:{},WHITE:{}},D2:{BLACK:{},WHITE:{}},BAN:{},PARENTS:{},TEST:{},TEST2:[]}
+class Parameter_set:
+    def __init__(self,*p):
+        if len(p)==7:
+            self.set_scan_value(*p)
 
-def set_entire(record_List):
-    entire_stone=get_entire()
+        elif len(p)==4:
+            self.set_option_value(*p)
+    
+    def set_scan_value(self,run_mode,check_line,stone,turn,turn_group,result_target,lineT):
+        self.update_parameter(locals())
+
+    def set_option_value(self,prior_val,stance,shape,element_type):
+        self.update_parameter(locals())
+
+    def update_parameter(self,local_dict):
+        self.__dict__.update(local_dict)
+
+def get_turn_group(ban_dict,option):
+    parents_dict={}
+    
+    turn_group=[Space_group(parents_dict,ban_dict),Space_group(parents_dict,ban_dict)]
+
+    if option:
+        turn_group[BLACK].set_check_dict()
+        turn_group[WHITE].set_check_dict()
+        
+    return turn_group
+
+def set_stone(record_List):
+    stone=Stone_group()
 
     for i in range(16):
-        entire_stone[EDGE][(i-1,-1)]=1
-        entire_stone[EDGE][(i,15)]=1
-        entire_stone[EDGE][(-1,i)]=1
-        entire_stone[EDGE][(15,i-1)]=1
+        stone.edge[(i-1,-1)]=1
+        stone.edge[(i,15)]=1
+        stone.edge[(-1,i)]=1
+        stone.edge[(15,i-1)]=1
 
     for i,(x,y) in enumerate(record_List):
-        entire_stone[i%2][(x-1,y-1)]=1
-        entire_stone[ENTIRE][(x-1,y-1)]=1
+        stone.turn_dict(i%2)[(x-1,y-1)]=1
+        stone.entire[(x-1,y-1)]=1
         
-    return entire_stone
+    return stone
 
-def main_play(record_List,mode):#ban은 임시
-    entire=set_entire(record_List)
-    #print(entire[0])
-    #print(entire[1])
-    turn=len(entire[ENTIRE])%2
+def main_play(record_List):
+    stone=set_stone(record_List)
+    turn=len(stone.entire)%2
 
-    #
-    '''
-    for xy in ban_List:
-        entire[BAN][xy]=1
-    '''
-    #
-
-    D2_spaces=Dimension_2(entire,turn)
+    turn_group=Dimension_2(stone,turn)
     
-    if mode==0:
-        return D2_spaces,turn
-
-    elif mode==1:
-        return get_result(D2_spaces[D1][turn])
+    return turn_group,turn
 
 def get_result(space_dict):
-    spaces=space_dict.values()
-    max_abs=max(space.max_abs for space in spaces)
+    spaceL=space_dict.values()
+    max_abs=max(space.max_abs for space in spaceL)
 
-    candidate_spaces=[space for space in spaces if space.max_abs==max_abs]
+    candidate_spaceL=[space for space in spaceL if space.max_abs==max_abs]
 
-    return ([space.xyT for space in candidate_spaces],
-            tuple([space.get_space_matrix()for space in candidate_spaces]))
+    return ([space.xyT for space in candidate_spaceL],
+            tuple([space.get_space_matrix()for space in candidate_spaceL]))
     
-def Dimension_2(entire,turn):
-    D2_spaces=get_D2_spaces()
+def Dimension_2(stone,turn):
+    ban_dict=ban_check(stone)
+ 
+    turn_group=get_turn_group(ban_dict,False)
     
-    D2_spaces[BAN]=ban_check(entire)
+    Dimension_1(turn_group,stone.turn_dict(turn).keys(),stone,D1,turn,D1_NORMAL)
+    Dimension_1(turn_group,stone.turn_dict(1-turn).keys(),stone,D1,1-turn,D1_NORMAL)
 
-    Dimension_1(D2_spaces,entire[turn].keys(),entire,D1,turn,D1_NORMAL)
-    Dimension_1(D2_spaces,entire[1-turn].keys(),entire,D1,1-turn,D1_NORMAL)
-
-    #tmp_33(D2_spaces)
-
-    #print(D2_spaces[D1][turn])
-
-    #update_D1_trigger(D2_spaces[D1][turn])
-    #update_D1_trigger(D2_spaces[D1][1-turn])
-
-    #D1_space_check(D2_spaces,turn)
-    #D1_space_check(D2_spaces,1-turn)
-
-    #t_func_D1(D2_spaces) #1차원 자리 종합
-
-    #2차원 탐색 추가 부분
-    #2차원 자리 종합
-
-    return D2_spaces
-
-def tmp_33(D2_spaces):
-    for turn,xyT,e1,e2 in D2_spaces[TEST2]:
-        ds1,ds2=map(lambda e:D2_spaces[PARENTS][(e.parents,e.lineT)].attackS,(e1,e2))
-        print(ds1,ds2)
-        dL=[xyT for xyT,shape in ds1|ds2 if shape<3]
-
-        for xyT in dL:
-            space=D2_spaces[D1][turn][xyT]
-            space.max_abs=max(space.max_abs,4)
-
-        
+    return turn_group
 
 def update_D1_trigger(space_dict):
     search_set=set()
@@ -481,25 +437,22 @@ def update_valueL(valueL):
     pass
 
 def end_check(record_List):
-    entire=set_entire(record_List)
+    stone=set_stone(record_List)
+    turn=len(stone.entire)%2
+
+    end_turn_group=get_turn_group({},True)
     
-    if not entire:
-        entire=set_entire(record_List)
-    turn=len(entire[ENTIRE])%2
+    Dimension_1(end_turn_group,stone.turn_dict(turn).keys(),stone,D1,turn,END_CHECK)
+    Dimension_1(end_turn_group,stone.turn_dict(1-turn).keys(),stone,D1,1-turn,END_CHECK)
 
-    end_spaces=get_D2_spaces()
+    return list(map(lambda turn:end_turn_group[turn].check_dict,(BLACK,WHITE)))
+
+def ban_check(stone):
+    ban_turn_group=get_turn_group({},True)
+
+    Dimension_1(ban_turn_group,stone.turn_dict(BLACK).keys(),stone,D1,BLACK,BAN_CHECK)
     
-    Dimension_1(end_spaces,entire[turn].keys(),entire,D1,turn,END_CHECK)
-    Dimension_1(end_spaces,entire[1-turn].keys(),entire,D1,1-turn,END_CHECK)
-
-    return entire[END]
-
-def ban_check(entire):
-    bancheck_spaces=get_D2_spaces()
-
-    Dimension_1(bancheck_spaces,entire[BLACK].keys(),entire,D1,BLACK,BAN_CHECK)
-
-    return bancheck_spaces[TEST]
+    return ban_turn_group[BLACK].check_dict
 
 def get_checkline(xyT):
     x,y=xyT
@@ -513,16 +466,20 @@ def get_checkline(xyT):
 
     return check_line
 
-def Dimension_1(D2_spaces,check_list,entire,result_target,turn,run_mode):
+def Dimension_1(turn_group,check_list,stone,result_target,turn,run_mode):
     for xyT in check_list:
         check_line=get_checkline(xyT)
 
         for i in range(4):
-            scan_stone(run_mode,check_line[i],entire,turn,D2_spaces,result_target,min_line((*xyT,i)))
+            scan_p=Parameter_set(run_mode,check_line[i],stone,turn,
+                                 turn_group,result_target,min_line((*xyT,i)))
+            scan_stone(scan_p)
 
-def scan_stone(run_mode,*p):
-    allyL,last=get_ally(p)
+def scan_stone(scan_p):
+    allyL,last=get_ally(scan_p)
     prior_val=len(allyL)
+
+    run_mode=scan_p.run_mode
 
     if run_mode in (D1_0,D2_0) and prior_val!=1:
         return
@@ -531,59 +488,60 @@ def scan_stone(run_mode,*p):
         return
 
     if run_mode==END_CHECK:
-        end_game(allyL,prior_val,*p)
+        end_game(allyL,prior_val,scan_p)
         return
 
     for i in range(len(allyL)):
-        scan_space(allyL[:i+1],allyL[i]-5,i+1,run_mode,*p)
+        scan_space(allyL[:i+1],allyL[i]-5,i+1,scan_p)
     
-def scan_space(allyL,last,prior_val,run_mode,*p):
+def scan_space(allyL,last,prior_val,scan_p):
     exceptL=allyL.copy()
 
-    e_left,de_left=map(lambda opt:-exclude_check(opt,exceptL,-1,4-last,4,p)+5,(True,False))
-    e_right,de_right=map(lambda opt:exclude_check(opt,exceptL,1,4-last,6+last,p)+last+5,(True,False))
+    e_left,e_right,r_left,r_right, \
+    de_left,de_right,dr_left,dr_right=measure_space(exceptL,last,scan_p)
 
-    if e_right-e_left<4:
+    if (e_right-e_left<4) or (scan_p.run_mode!=BAN_CHECK and r_right-r_left<4):
         return
 
-    r_left,dr_left=map(lambda x:x+sixpoint(x-1,*p),(e_left,de_left))
-    r_right,dr_right=map(lambda x:x-sixpoint(x+1,*p),(e_right,de_right))
+    stanceL,prior_val=get_valid_stanceL(r_left,r_right,dr_left,dr_right,allyL,exceptL,prior_val,scan_p)
 
+    parents=get_parents(allyL,scan_p.check_line)
 
-    if run_mode!=BAN_CHECK and r_right-r_left<4:
-        return
+    distribute_stanceL(stanceL,parents,prior_val,scan_p)
 
+def measure_space(exceptL,last,scan_p):
+    e_left,de_left=map(lambda opt:-exclude_check(opt,exceptL,-1,4-last,4,scan_p)+5,(True,False))
+    e_right,de_right=map(lambda opt:exclude_check(opt,exceptL,1,4-last,6+last,scan_p)+last+5,(True,False))
+
+    r_left,dr_left=map(lambda x:x+sixpoint(x-1,scan_p),(e_left,de_left))
+    r_right,dr_right=map(lambda x:x-sixpoint(x+1,scan_p),(e_right,de_right))
+
+    return e_left,e_right,r_left,r_right,de_left,de_right,dr_left,dr_right
+
+def get_valid_stanceL(r_left,r_right,dr_left,dr_right,allyL,exceptL,prior_val,scan_p):
+    run_mode=scan_p.run_mode
+    
     opened_rangeL=[*range(r_left+1,r_right)]
     closed_rangeL=[*range(r_left,r_right+1)]
-
     drangeL=[*range(dr_left,dr_right+1)]
 
-    banL=get_banlist(opened_rangeL,*p)
-    checked_banL=check_banlist(banL,prior_val,*p)
+    banL=get_banlist(opened_rangeL,scan_p)
+    checked_banL=check_banlist(banL,prior_val,scan_p)
 
-    '''
-    if run_mode==BAN_CHECK and prior_val in (3,4) and sixpoint(10,*p):
-        closed_rangeL=[*range(5,11)]
-        prior_val=-1
-    '''
-    if run_mode==BAN_CHECK and prior_val==4 and sixpoint(10,*p):
+    if run_mode==BAN_CHECK and prior_val==4 and sixpoint(10,scan_p): #prior_val 3
         closed_rangeL=[*range(5,10)]
         prior_val=-1
 
     if run_mode in (D1_0,D2_0):
-        allyL=[]
+        allyL.clear()
         prior_val=0
 
-    attackL=scan_attack(opened_rangeL,closed_rangeL,exceptL+banL,checked_banL,p)
-    defenseL=scan_defense(drangeL,exceptL+banL,attackL[0],p)
+    attackL=scan_attack(opened_rangeL,closed_rangeL,exceptL+banL,checked_banL,scan_p)
+    defenseL=scan_defense(drangeL,exceptL+banL,attackL[0],scan_p)
 
-    #print_check(attackL,defenseL,allyL,p)
+    return [attackL,defenseL],prior_val
 
-    parents=get_parents(allyL,*p)
-
-    distribute_space(attackL,defenseL,parents,prior_val,run_mode,p)
-
-def scan_attack(opened_rangeL,closed_rangeL,exceptL,checkL,p):
+def scan_attack(opened_rangeL,closed_rangeL,exceptL,checkL,scan_p):
     OA_L=multiple_filter(opened_rangeL,exceptL,checkL,1)
     CA_L=index_filter(closed_rangeL,OA_L+exceptL)
     
@@ -591,10 +549,9 @@ def scan_attack(opened_rangeL,closed_rangeL,exceptL,checkL,p):
 
     return OA_L,CA_L,OT_L,CT_L
 
-def scan_defense(drangeL,exceptL,OA_L,p):
+def scan_defense(drangeL,exceptL,OA_L,scan_p):
     dlen=len(drangeL)
     
-    #DF1_rangeL=(lambda start,end:closed_rangeL[start:end])(*((clen-5,5),(0,4))[clen==4])
     DF1_rangeL=drangeL[dlen-5:5]
     DF3_rangeL=(lambda start,end:drangeL[start:end])(*((dlen-6,6),(0,5))[dlen==5])
 
@@ -610,105 +567,97 @@ def scan_defense(drangeL,exceptL,OA_L,p):
 
     return DF1_L,DF2_L,DF3_L,DF4_L,DF5_L
 
-def print_check(attackL,defenseL,allyL,p):
-    OA_L,CA_L,OT_L,CT_L=attackL
-    DF1_L,DF2_L,DF3_L,DF4_L,DF5_L=defenseL
-    print(f"xy : {p[0][5]} {p[5][2]}")
-    print(f"allyL : {allyL}")
-    print(f"OA_L : {OA_L}")
-    print(f"CA_L : {CA_L}")
-    print(f"OT_L : {OT_L}")
-    print(f"CT_L : {CT_L}")
-    print(f"DF1_L : {DF1_L}")
-    print(f"DF2_L : {DF2_L}")
-    print(f"DF3_L : {DF3_L}")
-    print(f"DF4_L : {DF4_L}")
-    print(f"DF5_L : {DF5_L}")
+def distribute_stanceL(stanceL,parents,prior_val,scan_p):
+    attackL,defenseL=stanceL
+    
+    turn=scan_p.turn
 
-def distribute_space(attackL,defenseL,parents,prior_val,run_mode,p):
-    turn=p[2]
+    unpack_indexL(attackL[0],parents,turn,Parameter_set(prior_val,ATTACK,OPENED,NORMAL),scan_p)
+    unpack_indexL(attackL[1],parents,turn,Parameter_set(prior_val,ATTACK,CLOSED,NORMAL),scan_p)
 
-    p=parents,run_mode,*p
-
-    unpack_indexL(attackL[0],(turn,prior_val,ATTACK,OPENED,NORMAL),*p)
-    unpack_indexL(attackL[1],(turn,prior_val,ATTACK,CLOSED,NORMAL),*p)
-
-    unpack_indexL(attackL[2],(turn,prior_val,ATTACK,OPENED,TRIGGER),*p)
-    unpack_indexL(attackL[3],(turn,prior_val,ATTACK,CLOSED,TRIGGER),*p)
-
-    if run_mode in (BAN_CHECK,D2_0):
+    unpack_indexL(attackL[2],parents,turn,Parameter_set(prior_val,ATTACK,OPENED,TRIGGER),scan_p)
+    unpack_indexL(attackL[3],parents,turn,Parameter_set(prior_val,ATTACK,CLOSED,TRIGGER),scan_p)
+    
+    if scan_p.run_mode in (BAN_CHECK,D2_0):
         return
 
     for i in range(5):
-        unpack_indexL(defenseL[i],(1-turn,prior_val,DEFENSE,i,NORMAL),*p)
+        unpack_indexL(defenseL[i],parents,1-turn,Parameter_set(prior_val,DEFENSE,i,NORMAL),scan_p)
 
-    #if D2_0 -> activate_parents()
-
-def unpack_indexL(indexL,dp,parents,run_mode,check_line,*p):
-    if run_mode in (D1_NORMAL,BAN_CHECK):
-        set_element=set_D1_normal
+def unpack_indexL(indexL,parents,option_turn,option_p,scan_p):
+    if scan_p.run_mode in (D1_NORMAL,BAN_CHECK):
+        set_element=set_D1_element
     
     for index in indexL:
-        set_element(index,parents,run_mode,check_line,p,*dp)
+        set_element(index,parents,option_turn,option_p,scan_p)
 
+def set_D1_element(index,parents,option_turn,option_p,scan_p):
+    element_obj=(get_normal_obj,get_trigger_obj)[option_p.element_type==TRIGGER](index,parents,option_p,scan_p)
+    xyT=element_obj.xyT
 
-def set_D1_normal(index,parents,run_mode,check_line,p,option_turn,*dp):
-    entire,turn,D2_spaces,RT,lineT,element_type=*p,dp[-1]
-    
-    if element_type==TRIGGER:
-        index,targetL=index
-        xyT=check_line[index]
-        targetL=[check_line[x]for x in targetL]
-        sobj=Trigger_element(targetL,xyT,parents,lineT,*dp)
-    else:
-        xyT=check_line[index]
-        sobj=Element(xyT,parents,lineT,*dp)
-        
-    space_dict=D2_spaces[D1][option_turn]
-    parents_dict=D2_spaces[PARENTS]
+    space_dict=scan_p.turn_group[option_turn].D1
+    parents_dict=scan_p.turn_group[option_turn].parents_dict
 
     if not space_dict.get(xyT):
-        space_dict[xyT]=(Space,Bancheck_space)[run_mode==BAN_CHECK](xyT,D2_spaces,option_turn)
+        space_dict[xyT]=(Space,Bancheck_space)[scan_p.run_mode==BAN_CHECK](xyT,option_turn,scan_p.turn_group)
 
-    if not parents_dict.get(parents):
-        parents_dict[(parents,lineT)]=Parents()
+    parents_key=(parents,scan_p.lineT)
 
-    space_dict[xyT].add_element(sobj)
-    parents_dict[(parents,lineT)].add_space(xyT,option_turn,dp[2])
+    if not parents_dict.get(parents_key):
+        parents_dict[parents_key]=Parents()
 
-def get_ally(p):
+    space_dict[xyT].add_element(element_obj)
+    parents_dict[parents_key].add_space(xyT,option_turn,option_p)
+
+def get_normal_obj(index,parents,option_p,scan_p):
+    xyT=scan_p.check_line[index]
+
+    return Element(xyT,parents,option_p,scan_p.lineT)
+
+def get_trigger_obj(index,parents,option_p,scan_p):
+    index,targetL=index
+    xyT=scan_p.check_line[index]
+    targetL=[scan_p.check_line[x]for x in targetL]
+    
+    element_obj=Element(xyT,parents,option_p,scan_p.lineT)
+    element_obj.set_targetL(targetL)
+
+    return element_obj
+
+def get_ally(scan_p):
     allyL=[5]
     last=0
     for i in range(4):
-        if include(i+6,ALLY,*p):
+        if include(i+6,ALLY,scan_p):
             allyL.append(6+i)
             last=i+1
-        elif include(i+6,ENEMY,*p):
+        elif include(i+6,ENEMY,scan_p):
             break
     return allyL,last
 
-def include(index,option,check_line,entire,turn,*_):
-    xyT=check_line[index]
-    return ((option and xyT in entire[EDGE]) or xyT in entire[option^turn])
+def include(index,option,scan_p):
+    xyT=scan_p.check_line[index]
+    stone=scan_p.stone
+    return ((option and xyT in stone.entire) or xyT in stone.turn_dict(option^scan_p.turn))
 
-def exclude(index,option,exceptL,check_line,entire,turn,*_):
-    xyT=check_line[index]
-    result=not ((xyT in entire[ENTIRE])+(xyT in entire[EDGE]))
-    if not option and xyT in entire[turn]:
+def exclude(index,option,exceptL,scan_p):
+    xyT=scan_p.check_line[index]
+    result=not ((xyT in scan_p.stone.entire)+(xyT in scan_p.stone.edge))
+    if not option and xyT in scan_p.stone.turn_dict(scan_p.turn):
         exceptL.append(index)
         result=1
     return result
 
-def sixpoint(index,check_line,entire,turn,*_):
-    xyT=check_line[index]
-    if turn==WHITE:
+def sixpoint(index,scan_p):
+    xyT=scan_p.check_line[index]
+    if scan_p.turn==WHITE:
         return False
-    return xyT in entire[turn]
+    return xyT in scan_p.stone.turn_dict(scan_p.turn)
 
-def exclude_check(option,exceptL,direction,iterate,start,p):
+def exclude_check(option,exceptL,direction,iterate,start,scan_p):
     result=0
     for i in range(iterate):
-        if exclude(direction*i+start,option,exceptL,*p):
+        if exclude(direction*i+start,option,exceptL,scan_p):
             result+=1
         else:
             break
@@ -747,24 +696,29 @@ def trigger_filter(OA_L,CA_L,exceptL):
 
     return OT_L,CT_L
 
-def get_parents(allyL,check_line,*_):
+def get_parents(allyL,check_line):
     return tuple(check_line[x]for x in allyL)
 
-def end_game(allyL,prior_val,check_line,entire,*_):
-    if prior_val==5:
-        entire[END]=get_parents(allyL,check_line,0)
+def end_game(allyL,prior_val,scan_p):
+    if prior_val!=5:
+        return
 
+    check_dict=scan_p.turn_group[scan_p.turn].check_dict
+
+    for xyT in get_parents(allyL,check_line):
+        check_dict[xyT]=1
+    
 def get_validlist(indexL,rangeN,head):
     return [x for x in indexL if abs(head-x)<rangeN]
 
 def index_filter(indexL,targetL):
     return list(filter(lambda index:index not in targetL,indexL))
 
-def get_banlist(opened_rangeL,check_line,*p):
-    D2_spaces=p[2]
-    return [i for i,xy in enumerate(check_line) if xy in D2_spaces[BAN]]
+def get_banlist(opened_rangeL,scan_p):
+    ban_dict=scan_p.turn_group[0].ban_dict
+    return [i for i,xy in enumerate(scan_p.check_line) if xy in ban_dict]
 
-def check_banlist(banL,prior_val,*_):
+def check_banlist(banL,prior_val,*_): #check
     #return banL
     return []
 
@@ -798,6 +752,21 @@ def min_line(T):
 def get_record(fname):
     with open(f"기보/{fname}.txt","r") as f:
         return [tuple(map(int,xy.split(',')))for xy in f.read().split("\n")]
+
+def print_check(attackL,defenseL,allyL,scan_p):
+    OA_L,CA_L,OT_L,CT_L=attackL
+    DF1_L,DF2_L,DF3_L,DF4_L,DF5_L=defenseL
+    print(f"xy : {scan_p.check_line[5]} {scan_p.lineT[2]}")
+    print(f"allyL : {allyL}")
+    print(f"OA_L : {OA_L}")
+    print(f"CA_L : {CA_L}")
+    print(f"OT_L : {OT_L}")
+    print(f"CT_L : {CT_L}")
+    print(f"DF1_L : {DF1_L}")
+    print(f"DF2_L : {DF2_L}")
+    print(f"DF3_L : {DF3_L}")
+    print(f"DF4_L : {DF4_L}")
+    print(f"DF5_L : {DF5_L}")
 
 '''
 main_play(get_record("설계보조2"))

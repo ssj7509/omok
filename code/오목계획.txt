@@ -384,6 +384,11 @@ _ _ A _ _ O _ O _ E _
  -> return lambda e:(e.prior_val,-e.shape)
  -> sorted 부분 전체를 함수화하는 것도 고려
 
+- distribute_space -> set_indexL_option 이름 변경, 각 indexL마다 parameter obj 묶어서 반환
+ 
+
+- set_D1_normal -> set_D1_element 이름 변경
+
 - Parents 
  -> Element 클래스 메소드로 get_parents_key 추가, self.lineT[2], self.parents로 Parents 객체 value 접근
 

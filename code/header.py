@@ -1,3 +1,5 @@
+DEFAULT=0
+
 #D1 dictionary option
 BLACK=0 #turn
 WHITE=1 #turn
