@@ -13,7 +13,10 @@ with open("train data/index_Label.txt","a") as f:
         for i in range(1,len(game)-1):
             x,y=game[i+1]
             x,y=x-1,y-1
-            xyL,arrayT=anl.main_play(game[:i],1)
+
+            turn_group,turn=anl.main_play(game[:i])
+            xyL,arrayT=anl.get_result(turn_group[turn].D1)
+            
             if (x,y) not in xyL:
                 continue
             index=xyL.index((x,y))
