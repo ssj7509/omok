@@ -301,11 +301,6 @@ class Bancheck_space(Space):
             self.set_ban_space(self.xyT,33)
         elif double_check(e1,e2,lambda x:x.prior_val==3 and x.shape in (0,1)):
             self.set_ban_space(self.xyT,44)
-    
-
-class Ban_space:
-    pass
-
 
 class Parents:
     def __init__(self):
