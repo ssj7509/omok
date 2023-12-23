@@ -700,7 +700,7 @@ def end_game(allyL,prior_val,scan_p):
 
     check_dict=scan_p.turn_group[scan_p.turn].check_dict
 
-    for xyT in get_parents(allyL,check_line):
+    for xyT in get_parents(allyL,scan_p.check_line):
         check_dict[xyT]=1
     
 def get_validlist(indexL,rangeN,head):
