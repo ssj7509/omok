@@ -8,7 +8,6 @@ from tk_header import *
 import math,random
 import analyzer_v2 as anl
 import benchmark_learning as bml
-import randomforest_learning as rfl
 
 def setRootWindow(uimain):
     win=uimain.root=tk.Tk()
