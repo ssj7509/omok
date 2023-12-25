@@ -37,6 +37,9 @@ class Element:
 
     def get_vars(self):
         return self.parents,self.lineT,self.prior_val,self.stance,self.shape,self.element_type
+
+    def get_parents_key(self):
+        return self.parents,self.lineT
     
     def get_parameter_set(self):
         option_p=Parameter_set(self.prior_val,self.stance,self.shape,self.element_type)
@@ -52,18 +55,24 @@ class Space:
         self.xyT=xyT
         self.turn_group=turn_group
         self.turn=turn
+        self.objL=[]
         self.elementL=[]
         self.triggerL=[]
         self.trigger_valueL=[]
         self.target_set=set()
         self.max_abs=0
 
+    def set_element(self):
+        for obj in self.objL:
+            self.add_element(obj)
+
+        self.objL.clear()
+
     def add_element(self,new_e):
         if new_e.element_type!=TARGET:
             self.max_abs=max(self.max_abs,new_e.abs_val)
-            
+        
         deleteL=[]
-        check=0
         
         for old_e in self.elementL:
             if self.nest_element(old_e,new_e,deleteL):
@@ -73,6 +82,9 @@ class Space:
             del self.elementL[self.elementL.index(de)]
         
         self.elementL.append(new_e)
+
+    def add_obj(self,new_e):    
+        self.objL.append(new_e)
     
     def add_trigger(self,e):
         if e.element_type==TRIGGER:
@@ -94,7 +106,6 @@ class Space:
         self.normal_nest(e1,e2)
 
         self.normal_trigger_nest(e1,e2)
-
 
     def normal_nest(self,e1,e2):
         if double_check(e1,e2,lambda x:x.element_type==NORMAL and x.stance==ATTACK):
@@ -151,7 +162,7 @@ class Space:
         if e1.element_type==TRIGGER:
             return self.trigger_parents_nest(e1,e2)
 
-        te1,te2=sorted((e1,e2),key=lambda e:(e.prior_val,-e.shape))
+        te1,te2=self.get_sorted_element(e1,e2)
 
         if e1 is te1:
             deleteL.append(e1)
@@ -160,7 +171,7 @@ class Space:
         return 2
 
     def trigger_parents_nest(self,e1,e2):
-        e1,e2=sorted((e1,e2),key=lambda e:(e.prior_val,-e.shape))
+        e1,e2=self.get_sorted_element(e1,e2)
 
         e1.targetL=[*(set(e1.targetL)-set(e2.targetL))]
 
@@ -225,6 +236,9 @@ class Space:
             space_dict[xyT]=Space(xyT,turn,self.turn_group)
 
         return space_dict[xyT]
+
+    def get_sorted_element(self,e1,e2):
+        return sorted((e1,e2),key=lambda e:(e.prior_val,-e.shape))
 
     def get_space_matrix(self):
         array=np.zeros(36)
@@ -304,11 +318,38 @@ class Bancheck_space(Space):
 
 class Parents:
     def __init__(self):
-        self.attackS=set()
-        self.defenseS=set()
+        self.family=Family()
 
-    def add_space(self,xyT,option_turn,shape):
-        (self.attackS,self.defenseS)[option_turn].add((xyT,shape))
+    def add_element(self,xyT,option_p):
+        self.family.add_family_element(xyT,option_p)
+
+    def get_valid_attackS(self):
+        return self.valid_attackS
+
+    def get_invalid_attackS(self):
+        return self.invalid_attackS
+
+    def get_valid_defenseS(self):
+        return self.valid_defenseS
+
+    def get_invalid_defense(self):
+        return self.invalid_defenseS
+
+class Family:
+    def __init__(self):
+        self.valid_attackS=set()
+        self.valid_defenseS=set()
+        self.invalid_attackS=set()
+        self.invalid_defenseS=set()
+       
+    def add_family_element(self,xyT,option_p):
+        (self.add_attack_family,self.add_defense_family)[option_p.stance==DEFENSE](xyT,option_p)
+
+    def add_attack_family(self,xyT,option_p):
+        (self.valid_attackS,self.invalid_attackS)[option_p.shape==CLOSED].add(xyT)
+
+    def add_defense_family(self,xyT,option_p):
+        (self.valid_defenseS,self.invalid_defenseS)[option_p.shape==DEFENSE5].add(xyT)
 
 class Stone_group:
     def __init__(self):
@@ -347,6 +388,9 @@ class Parameter_set:
 
     def update_parameter(self,local_dict):
         self.__dict__.update(local_dict)
+
+    def get_parameters(self):
+        return tuple(self.__dict__.values())
 
 def get_turn_group(ban_dict,option):
     parents_dict={}
@@ -399,7 +443,16 @@ def Dimension_2(stone,turn):
     Dimension_1(turn_group,stone.turn_dict(turn).keys(),stone,D1,turn,D1_NORMAL)
     Dimension_1(turn_group,stone.turn_dict(1-turn).keys(),stone,D1,1-turn,D1_NORMAL)
 
+    set_D1_space(turn_group)
+
     return turn_group
+
+def set_D1_space(turn_group):
+    for space in turn_group[BLACK].D1.values():
+        space.set_element()
+
+    for space in turn_group[WHITE].D1.values():
+        space.set_element()
 
 def update_D1_trigger(space_dict):
     search_set=set()
@@ -446,6 +499,8 @@ def ban_check(stone):
     ban_turn_group=get_turn_group({},True)
 
     Dimension_1(ban_turn_group,stone.turn_dict(BLACK).keys(),stone,D1,BLACK,BAN_CHECK)
+
+    set_D1_space(ban_turn_group)
     
     return ban_turn_group[BLACK].check_dict
 
@@ -601,8 +656,8 @@ def set_D1_element(index,parents,option_turn,option_p,scan_p):
     if not parents_dict.get(parents_key):
         parents_dict[parents_key]=Parents()
 
-    space_dict[xyT].add_element(element_obj)
-    parents_dict[parents_key].add_space(xyT,option_turn,option_p)
+    space_dict[xyT].add_obj(element_obj)
+    parents_dict[parents_key].add_element(xyT,option_p)
 
 def get_normal_obj(index,parents,option_p,scan_p):
     xyT=scan_p.check_line[index]
