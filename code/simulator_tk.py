@@ -696,10 +696,10 @@ def get_D1_elements(turn_group,turn):
     for space in turn_group[turn].D1.values():
         xyT=space.xyT
         for element in space.elementL:
-            parents,lineT,prior_val,stance,shape,element_type=element.get_vars()
+            parents,lineT,shape_N,stance,shape_type,element_type=element.get_vars()
             targetL=element.targetL if element_type==anl.TRIGGER else []
 
-            key=(anl.D1,stance,shape,element_type,prior_val)
+            key=(anl.D1,stance,shape_type,element_type,shape_N)
             
             if not element_dict.get(key):
                 element_dict[key]=[]

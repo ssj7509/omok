@@ -6,49 +6,49 @@ class Element:
     def __init__(self,xyT,parents,option_p,lineT):
         self.xyT=xyT
         self.parents=parents
-        self.prior_val=option_p.prior_val
+        self.shape_N=option_p.shape_N
         self.stance=option_p.stance
-        self.shape=option_p.shape
+        self.shape_type=option_p.shape_type
         self.element_type=option_p.element_type
         self.lineT=lineT
-        self.abs_val=self.get_abs_val(self.prior_val,self.stance,self.shape)
+        self.abs_val=self.get_abs_val(self.shape_N,self.stance,self.shape_type)
 
     def set_targetL(self,targetL):
         self.targetL=targetL
         self.valueL=[]
 
-    def get_abs_val(self,prior_val,stance,shape):
+    def get_abs_val(self,shape_N,stance,shape_type):
         r=1
 
-        if prior_val==5 and stance==ATTACK:
+        if shape_N==5 and stance==ATTACK:
             r=13
-        elif prior_val==5 and stance==DEFENSE:
+        elif shape_N==5 and stance==DEFENSE:
             r=11
-        elif prior_val==4 and stance==ATTACK:
+        elif shape_N==4 and stance==ATTACK:
             r=9
-        elif prior_val==4 and stance==DEFENSE:
+        elif shape_N==4 and stance==DEFENSE:
             r=7
-        elif prior_val==3 and stance==ATTACK and shape==OPENED:
+        elif shape_N==3 and stance==ATTACK and shape_type==OPENED:
             r=5
-        elif prior_val==3 and stance==DEFENSE and shape in (DEFENSE1,DEFENSE3):
+        elif shape_N==3 and stance==DEFENSE and shape_type in (DEFENSE1,DEFENSE3):
             r=3
 
         return r
 
     def get_vars(self):
-        return self.parents,self.lineT,self.prior_val,self.stance,self.shape,self.element_type
+        return self.parents,self.lineT,self.shape_N,self.stance,self.shape_type,self.element_type
 
     def get_parents_key(self):
         return self.parents,self.lineT
     
     def get_parameter_set(self):
-        option_p=Parameter_set(self.prior_val,self.stance,self.shape,self.element_type)
+        option_p=Parameter_set(self.shape_N,self.stance,self.shape_type,self.element_type)
 
         return self.xyT,self.parents,option_p,self.lineT
 
     def set_matrix(self,array):
         if self.element_type in (NORMAL,TARGET):
-            array[1+self.stance*10+(self.prior_val-1)*(2,5)[self.stance]+self.shape]+=1
+            array[1+self.stance*10+(self.shape_N-1)*(2,5)[self.stance]+self.shape_type]+=1
 
 class Space:
     def __init__(self,xyT,turn,turn_group):
@@ -121,32 +121,32 @@ class Space:
         if self.get_predict_abs(normal)<self.get_predict_abs(trigger):
             return
 
-        if self.turn==BLACK and tuple(map(lambda e:(e.prior_val,e.shape),(normal,trigger))) \
+        if self.turn==BLACK and tuple(map(lambda e:(e.shape_N,e.shape_type),(normal,trigger))) \
                                 in (((2,0),(1,0)),((3,1),(2,1))):
             return
 
         self.activate_trigger(normal,trigger)
     
     def get_predict_abs(self,e):
-        return Element.get_abs_val(None,e.prior_val+1,e.stance,e.shape)
+        return Element.get_abs_val(None,e.shape_N+1,e.stance,e.shape_type)
     
     def adjust_abs(self,e1,e2):
-        e1,e2=sorted((e1,e2),key=lambda e:(e.abs_val,e.prior_val,-e.shape))
+        e1,e2=sorted((e1,e2),key=lambda e:(e.abs_val,e.shape_N,-e.shape_type))
         
-        t=((e1.prior_val,e1.shape),(e2.prior_val,e2.shape))
+        t=((e1.shape_N,e1.shape_type),(e2.shape_N,e2.shape_type))
         
-        if e1.prior_val==2 and e1.shape==0 and e2.prior_val==3:
+        if e1.shape_N==2 and e1.shape_type==0 and e2.shape_N==3:
             self.max_abs=max(self.max_abs,5)
             self.defense_nest(4)
 
-        elif double_check(e1,e2,lambda x:x.prior_val==3 and x.shape==CLOSED):
+        elif double_check(e1,e2,lambda x:x.shape_N==3 and x.shape_type==CLOSED):
             self.max_abs=max(self.max_abs,5*self.turn)
             self.defense_nest(4*(self.turn))
 
-        elif double_check(e1,e2,lambda x:x.prior_val==4):
+        elif double_check(e1,e2,lambda x:x.shape_N==4):
             self.defense_nest(8*(self.turn))
 
-        elif double_check(e1,e2,lambda x:x.prior_val==2 and x.shape==OPENED):
+        elif double_check(e1,e2,lambda x:x.shape_N==2 and x.shape_type==OPENED):
             self.max_abs=max(self.max_abs,2*self.turn)
             self.defense_nest(1.5*(self.turn))
 
@@ -176,7 +176,7 @@ class Space:
         e1.targetL=[*(set(e1.targetL)-set(e2.targetL))]
 
     def linear_nest(self,e1,e2):
-        if not (double_check(e1,e2,lambda x:x.shape==CLOSED and x.element_type==TRIGGER) \
+        if not (double_check(e1,e2,lambda x:x.shape_type==CLOSED and x.element_type==TRIGGER) \
            and compare_lineT(e1,e2)):
             return
         
@@ -188,7 +188,7 @@ class Space:
         if not (bool(diff_set1) and bool(diff_set2)):
             return
         
-        if double_check(e1,e2,lambda x:x.prior_val==3):
+        if double_check(e1,e2,lambda x:x.shape_N==3):
             return self.linear_44(e1,e2,diff_set1,diff_set2)
 
         else:
@@ -202,7 +202,7 @@ class Space:
         return 1
         
     def linear_build_3(self,e1,e2,diff_set1,diff_set2,inter_set):
-        v1,v2=map(lambda e,ds:len(ds)-1+len(inter_set)>=3-e.prior_val,(e1,e2),(diff_set1,diff_set2))
+        v1,v2=map(lambda e,ds:len(ds)-1+len(inter_set)>=3-e.shape_N,(e1,e2),(diff_set1,diff_set2))
 
         if not (v1 and v2):
             return
@@ -238,7 +238,7 @@ class Space:
         return space_dict[xyT]
 
     def get_sorted_element(self,e1,e2):
-        return sorted((e1,e2),key=lambda e:(e.prior_val,-e.shape))
+        return sorted((e1,e2),key=lambda e:(e.shape_N,-e.shape_type))
 
     def get_space_matrix(self):
         array=np.zeros(36)
@@ -268,7 +268,7 @@ class Bancheck_space(Space):
         self.elementL.append(new_e)
 
     def six_check(self,e):
-        if e.prior_val==-1:
+        if e.shape_N==-1:
             self.set_ban_space(self.xyT,6)
     
     def nest_element(self,e1,e2):
@@ -307,13 +307,13 @@ class Bancheck_space(Space):
         ban_space.ban_name=ban_name
 
     def adjust_abs(self,e1,e2):
-        e1,e2=sorted((e1,e2),key=lambda e:(e.abs_val,e.prior_val,-e.shape))
+        e1,e2=sorted((e1,e2),key=lambda e:(e.abs_val,e.shape_N,-e.shape_type))
         
-        t=((e1.prior_val,e1.shape),(e2.prior_val,e2.shape))
+        t=((e1.shape_N,e1.shape_type),(e2.shape_N,e2.shape_type))
 
         if t==((2,0),(2,0)):
             self.set_ban_space(self.xyT,33)
-        elif double_check(e1,e2,lambda x:x.prior_val==3 and x.shape in (0,1)):
+        elif double_check(e1,e2,lambda x:x.shape_N==3 and x.shape_type in (0,1)):
             self.set_ban_space(self.xyT,44)
 
 class Parents:
@@ -346,10 +346,10 @@ class Family:
         (self.add_attack_family,self.add_defense_family)[option_p.stance==DEFENSE](xyT,option_p)
 
     def add_attack_family(self,xyT,option_p):
-        (self.valid_attackS,self.invalid_attackS)[option_p.shape==CLOSED].add(xyT)
+        (self.valid_attackS,self.invalid_attackS)[option_p.shape_type==CLOSED].add(xyT)
 
     def add_defense_family(self,xyT,option_p):
-        (self.valid_defenseS,self.invalid_defenseS)[option_p.shape==DEFENSE5].add(xyT)
+        (self.valid_defenseS,self.invalid_defenseS)[option_p.shape_type==DEFENSE5].add(xyT)
 
 class Stone_group:
     def __init__(self):
@@ -383,7 +383,7 @@ class Parameter_set:
     def set_scan_value(self,run_mode,check_line,stone,turn,turn_group,result_target,lineT):
         self.update_parameter(locals())
 
-    def set_option_value(self,prior_val,stance,shape,element_type):
+    def set_option_value(self,shape_N,stance,shape_type,element_type):
         self.update_parameter(locals())
 
     def update_parameter(self,local_dict):
@@ -527,24 +527,24 @@ def Dimension_1(turn_group,check_list,stone,result_target,turn,run_mode):
 
 def scan_stone(scan_p):
     allyL,last=get_ally(scan_p)
-    prior_val=len(allyL)
+    shape_N=len(allyL)
 
     run_mode=scan_p.run_mode
 
-    if run_mode in (D1_0,D2_0) and prior_val!=1:
+    if run_mode in (D1_0,D2_0) and shape_N!=1:
         return
 
-    if run_mode==BAN_CHECK and prior_val==1:
+    if run_mode==BAN_CHECK and shape_N==1:
         return
 
     if run_mode==END_CHECK:
-        end_game(allyL,prior_val,scan_p)
+        end_game(allyL,shape_N,scan_p)
         return
 
     for i in range(len(allyL)):
         scan_space(allyL[:i+1],allyL[i]-5,i+1,scan_p)
     
-def scan_space(allyL,last,prior_val,scan_p):
+def scan_space(allyL,last,shape_N,scan_p):
     exceptL=allyL.copy()
 
     e_left,e_right,r_left,r_right, \
@@ -553,11 +553,11 @@ def scan_space(allyL,last,prior_val,scan_p):
     if (e_right-e_left<4) or (scan_p.run_mode!=BAN_CHECK and r_right-r_left<4):
         return
 
-    stanceL,prior_val=get_valid_stanceL(r_left,r_right,dr_left,dr_right,allyL,exceptL,prior_val,scan_p)
+    stanceL,shape_N=get_valid_stanceL(r_left,r_right,dr_left,dr_right,allyL,exceptL,shape_N,scan_p)
 
     parents=get_parents(allyL,scan_p.check_line)
 
-    distribute_stanceL(stanceL,parents,prior_val,scan_p)
+    distribute_stanceL(stanceL,parents,shape_N,scan_p)
 
 def measure_space(exceptL,last,scan_p):
     e_left,de_left=map(lambda opt:-exclude_check(opt,exceptL,-1,4-last,4,scan_p)+5,(True,False))
@@ -568,7 +568,7 @@ def measure_space(exceptL,last,scan_p):
 
     return e_left,e_right,r_left,r_right,de_left,de_right,dr_left,dr_right
 
-def get_valid_stanceL(r_left,r_right,dr_left,dr_right,allyL,exceptL,prior_val,scan_p):
+def get_valid_stanceL(r_left,r_right,dr_left,dr_right,allyL,exceptL,shape_N,scan_p):
     run_mode=scan_p.run_mode
     
     opened_rangeL=[*range(r_left+1,r_right)]
@@ -576,20 +576,20 @@ def get_valid_stanceL(r_left,r_right,dr_left,dr_right,allyL,exceptL,prior_val,sc
     drangeL=[*range(dr_left,dr_right+1)]
 
     banL=get_banlist(opened_rangeL,scan_p)
-    checked_banL=check_banlist(banL,prior_val,scan_p)
+    checked_banL=check_banlist(banL,shape_N,scan_p)
 
-    if run_mode==BAN_CHECK and prior_val==4 and sixpoint(10,scan_p): #prior_val 3
+    if run_mode==BAN_CHECK and shape_N==4 and sixpoint(10,scan_p): #shape_N 3
         closed_rangeL=[*range(5,10)]
-        prior_val=-1
+        shape_N=-1
 
     if run_mode in (D1_0,D2_0):
         allyL.clear()
-        prior_val=0
+        shape_N=0
 
     attackL=scan_attack(opened_rangeL,closed_rangeL,exceptL+banL,checked_banL,scan_p)
     defenseL=scan_defense(drangeL,exceptL+banL,attackL[0],scan_p)
 
-    return [attackL,defenseL],prior_val
+    return [attackL,defenseL],shape_N
 
 def scan_attack(opened_rangeL,closed_rangeL,exceptL,checkL,scan_p):
     OA_L=multiple_filter(opened_rangeL,exceptL,checkL,1)
@@ -617,22 +617,22 @@ def scan_defense(drangeL,exceptL,OA_L,scan_p):
 
     return DF1_L,DF2_L,DF3_L,DF4_L,DF5_L
 
-def distribute_stanceL(stanceL,parents,prior_val,scan_p):
+def distribute_stanceL(stanceL,parents,shape_N,scan_p):
     attackL,defenseL=stanceL
     
     turn=scan_p.turn
 
-    unpack_indexL(attackL[0],parents,turn,Parameter_set(prior_val,ATTACK,OPENED,NORMAL),scan_p)
-    unpack_indexL(attackL[1],parents,turn,Parameter_set(prior_val,ATTACK,CLOSED,NORMAL),scan_p)
+    unpack_indexL(attackL[0],parents,turn,Parameter_set(shape_N,ATTACK,OPENED,NORMAL),scan_p)
+    unpack_indexL(attackL[1],parents,turn,Parameter_set(shape_N,ATTACK,CLOSED,NORMAL),scan_p)
 
-    unpack_indexL(attackL[2],parents,turn,Parameter_set(prior_val,ATTACK,OPENED,TRIGGER),scan_p)
-    unpack_indexL(attackL[3],parents,turn,Parameter_set(prior_val,ATTACK,CLOSED,TRIGGER),scan_p)
+    unpack_indexL(attackL[2],parents,turn,Parameter_set(shape_N,ATTACK,OPENED,TRIGGER),scan_p)
+    unpack_indexL(attackL[3],parents,turn,Parameter_set(shape_N,ATTACK,CLOSED,TRIGGER),scan_p)
     
     if scan_p.run_mode in (BAN_CHECK,D2_0):
         return
 
     for i in range(5):
-        unpack_indexL(defenseL[i],parents,1-turn,Parameter_set(prior_val,DEFENSE,i,NORMAL),scan_p)
+        unpack_indexL(defenseL[i],parents,1-turn,Parameter_set(shape_N,DEFENSE,i,NORMAL),scan_p)
 
 def unpack_indexL(indexL,parents,option_turn,option_p,scan_p):
     if scan_p.run_mode in (D1_NORMAL,BAN_CHECK):
@@ -749,8 +749,8 @@ def trigger_filter(OA_L,CA_L,exceptL):
 def get_parents(allyL,check_line):
     return tuple(check_line[x]for x in allyL)
 
-def end_game(allyL,prior_val,scan_p):
-    if prior_val!=5:
+def end_game(allyL,shape_N,scan_p):
+    if shape_N!=5:
         return
 
     check_dict=scan_p.turn_group[scan_p.turn].check_dict
@@ -768,7 +768,7 @@ def get_banlist(opened_rangeL,scan_p):
     ban_dict=scan_p.turn_group[0].ban_dict
     return [i for i,xy in enumerate(scan_p.check_line) if xy in ban_dict]
 
-def check_banlist(banL,prior_val,*_): #check
+def check_banlist(banL,shape_N,*_): #check
     #return banL
     return []
 
