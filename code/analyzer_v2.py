@@ -155,11 +155,6 @@ class Space:
 
         return 1
 
-    def trigger_parents_nest(self,e1,e2):
-        e1,e2=self.get_sorted_element(e1,e2)
-
-        e1.targetL=[*(set(e1.targetL)-set(e2.targetL))]
-
     def linear_nest(self,e1,e2):
         if not (double_check(e1,e2,lambda x:x.shape_type==CLOSED and x.element_type==TRIGGER) \
            and compare_lineT(e1,e2)):
@@ -533,8 +528,7 @@ def scan_stone(scan_p):
 def scan_space(allyL,last,shape_N,scan_p):
     exceptL=allyL.copy()
 
-    e_left,e_right,r_left,r_right, \
-    de_left,de_right,dr_left,dr_right=measure_space(exceptL,last,scan_p)
+    e_left,e_right,r_left,r_right,dr_left,dr_right=measure_space(exceptL,last,scan_p)
 
     if (e_right-e_left<4) or (scan_p.run_mode!=BAN_CHECK and r_right-r_left<4):
         return
@@ -552,7 +546,7 @@ def measure_space(exceptL,last,scan_p):
     r_left,dr_left=map(lambda x:x+sixpoint(x-1,scan_p),(e_left,de_left))
     r_right,dr_right=map(lambda x:x-sixpoint(x+1,scan_p),(e_right,de_right))
 
-    return e_left,e_right,r_left,r_right,de_left,de_right,dr_left,dr_right
+    return e_left,e_right,r_left,r_right,dr_left,dr_right
 
 def get_valid_stanceL(r_left,r_right,dr_left,dr_right,allyL,exceptL,shape_N,scan_p):
     run_mode=scan_p.run_mode
@@ -560,9 +554,6 @@ def get_valid_stanceL(r_left,r_right,dr_left,dr_right,allyL,exceptL,shape_N,scan
     opened_rangeL=[*range(r_left+1,r_right)]
     closed_rangeL=[*range(r_left,r_right+1)]
     drangeL=[*range(dr_left,dr_right+1)]
-
-    banL=get_banlist(opened_rangeL,scan_p)
-    checked_banL=check_banlist(banL,shape_N,scan_p)
 
     if run_mode==BAN_CHECK and shape_N==4 and sixpoint(10,scan_p): #shape_N 3
         closed_rangeL=[*range(5,10)]
@@ -572,8 +563,13 @@ def get_valid_stanceL(r_left,r_right,dr_left,dr_right,allyL,exceptL,shape_N,scan
         allyL.clear()
         shape_N=0
 
-    attackL=scan_attack(opened_rangeL,closed_rangeL,exceptL+banL,checked_banL,scan_p)
-    defenseL=scan_defense(drangeL,exceptL+banL,attackL[0],scan_p)
+    attack_banL,defense_banL=get_banlist(shape_N,scan_p)
+
+    releasable_banL=check_banlist(attack_banL,shape_N,scan_p)
+    checked_banL=index_filter(attack_banL,releasable_banL)
+
+    attackL=scan_attack(opened_rangeL,closed_rangeL,exceptL+attack_banL,checked_banL,scan_p)
+    defenseL=scan_defense(drangeL,exceptL+defense_banL,attackL[0],scan_p)
 
     return [attackL,defenseL],shape_N
 
@@ -750,12 +746,15 @@ def get_validlist(indexL,rangeN,head):
 def index_filter(indexL,targetL):
     return list(filter(lambda index:index not in targetL,indexL))
 
-def get_banlist(opened_rangeL,scan_p):
-    ban_dict=scan_p.turn_group[0].ban_dict
-    return [i for i,xy in enumerate(scan_p.check_line) if xy in ban_dict]
+def get_banlist(shape_N,scan_p):
+    if shape_N==4:
+        return [],[]
+    
+    banL=[i for i,xy in enumerate(scan_p.check_line) if xy in scan_p.turn_group[0].ban_dict]
+    
+    return ((banL,[]),([],banL))[scan_p.turn]
 
-def check_banlist(banL,shape_N,*_): #check
-    #return banL
+def check_banlist(banL,shape_N,scan_p):
     return []
 
 def compare_parents(P1,P2):
