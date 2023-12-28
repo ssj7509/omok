@@ -452,7 +452,8 @@ def aiPlay(WD):
 
     xyL=bml.get_xy(xyT,arrayT,"11")
     x,y=random.choice(xyL)
-
+    
+    print(f"{[*map(int,turn_group[turn].D1[(x,y)].get_space_matrix())]}")
     print(f"({x+1},{y+1}),{turn_group[turn].D1[(x,y)].max_abs}")
 
     addStone(WD,x+1,y+1)
@@ -712,7 +713,7 @@ def refreshCount(WD):
     WD["countLabel"].config(text=f"{WD['cursor']}/{len(WD['xyList'])}")
     WD["checkLabel"].config(text=f"check point : {('None',cp)[bool(cp)]}")
     WD["turnLabel"].config(text=f"turn : {('BLACK','WHITE')[WD['cursor']%2]}")
-    WD["end"]=bool(anl.end_check(WD["xyList"][:WD["cursor"]])[WD["cursor"]%2])
+    WD["end"]=bool(anl.end_check(WD["xyList"][:WD["cursor"]])[1-WD["cursor"]%2])
 
 def insert_Circle(WD,x,y,r,color):
     return WD["canvas"].create_oval(x*BW/16-r,y*BH/16-r,x*BW/16+r,y*BH/16+r,fill=color)

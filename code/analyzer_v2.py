@@ -55,27 +55,17 @@ class Space:
         self.xyT=xyT
         self.turn_group=turn_group
         self.turn=turn
-        self.objL=[]
         self.elementL=[]
         self.triggerL=[]
         self.trigger_valueL=[]
         self.target_set=set()
         self.max_abs=0
 
-    def set_element(self):
-        for obj in self.objL:
-            self.add_element(obj)
-
-        self.objL.clear()
-
     def add_element(self,new_e):
-        if new_e.element_type!=TARGET:
-            self.max_abs=max(self.max_abs,new_e.abs_val)
-        
         deleteL=[]
         
         for old_e in self.elementL:
-            if self.nest_element(old_e,new_e,deleteL):
+            if self.parents_nest(old_e,new_e,deleteL):
                 return
             
         for de in deleteL:
@@ -83,20 +73,19 @@ class Space:
         
         self.elementL.append(new_e)
 
-    def add_obj(self,new_e):    
-        self.objL.append(new_e)
+    def set_element(self):
+        e_len=len(self.elementL)
+        
+        for i in range(e_len):
+            for j in range(i+1,e_len):
+                self.nest_element(self.elementL[i],self.elementL[j])
     
     def add_trigger(self,e):
         if e.element_type==TRIGGER:
             self.triggerL.append(e)
             self.target_set.update(e.targetL)
 
-    def nest_element(self,e1,e2,deleteL):
-        delete_val=self.parents_nest(e1,e2,deleteL)
-            
-        if delete_val:
-            return delete_val-1
-        
+    def nest_element(self,e1,e2):
         if self.turn==WHITE and self.linear_nest(e1,e2):
             return
 
@@ -104,7 +93,6 @@ class Space:
             return
 
         self.normal_nest(e1,e2)
-
         self.normal_trigger_nest(e1,e2)
 
     def normal_nest(self,e1,e2):
@@ -159,16 +147,13 @@ class Space:
            not compare_contents(e1,e2,lambda x:(x.element_type,x.stance)):
             return
 
-        if e1.element_type==TRIGGER:
-            return self.trigger_parents_nest(e1,e2)
-
         te1,te2=self.get_sorted_element(e1,e2)
 
         if e1 is te1:
             deleteL.append(e1)
-            return 1
+            return 
 
-        return 2
+        return 1
 
     def trigger_parents_nest(self,e1,e2):
         e1,e2=self.get_sorted_element(e1,e2)
@@ -253,6 +238,7 @@ class Bancheck_space(Space):
     def __init__(self,*p):
         super().__init__(*p)
         self.ban_name=None
+        self.release_val=False
 
     def add_element(self,new_e):
         
@@ -656,7 +642,7 @@ def set_D1_element(index,parents,option_turn,option_p,scan_p):
     if not parents_dict.get(parents_key):
         parents_dict[parents_key]=Parents()
 
-    space_dict[xyT].add_obj(element_obj)
+    space_dict[xyT].add_element(element_obj)
     parents_dict[parents_key].add_element(xyT,option_p)
 
 def get_normal_obj(index,parents,option_p,scan_p):
