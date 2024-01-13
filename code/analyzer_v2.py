@@ -415,7 +415,7 @@ def get_result(space_dict):
 
     return ([space.xyT for space in candidate_spaceL],
             tuple([space.get_space_matrix()for space in candidate_spaceL]))
-    
+
 def Dimension_2(stone,turn):
     ban_dict=ban_check(stone)
  
@@ -564,16 +564,17 @@ def get_valid_stanceL(r_left,r_right,dr_left,dr_right,allyL,exceptL,shape_N,scan
         shape_N=0
 
     attack_banL,defense_banL=get_banlist(shape_N,scan_p)
+    checked_banL=check_banlist(attack_banL,shape_N,scan_p)
 
-    releasable_banL=check_banlist(attack_banL,shape_N,scan_p)
-    checked_banL=index_filter(attack_banL,releasable_banL)
-
-    attackL=scan_attack(opened_rangeL,closed_rangeL,exceptL+attack_banL,checked_banL,scan_p)
+    attackL=scan_attack(opened_rangeL,closed_rangeL,exceptL,attack_banL,checked_banL,scan_p)
     defenseL=scan_defense(drangeL,exceptL+defense_banL,attackL[0],scan_p)
 
     return [attackL,defenseL],shape_N
 
-def scan_attack(opened_rangeL,closed_rangeL,exceptL,checkL,scan_p):
+def scan_attack(opened_rangeL,closed_rangeL,exceptL,banL,checked_banL,scan_p):
+    checkL=index_filter(banL,checked_banL)
+    exceptL=exceptL+banL
+    
     OA_L=multiple_filter(opened_rangeL,exceptL,checkL,1)
     CA_L=index_filter(closed_rangeL,OA_L+exceptL)
     

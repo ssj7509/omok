@@ -6,12 +6,14 @@ from tkinter import filedialog,simpledialog
 from tk_header import *
 
 import math,random
-import analyzer_v2 as anl
+
+from board_analyzer.board_analyzer import BoardAnalyzer
 import benchmark_learning as bml
 
 def setRootWindow(uimain):
     win=uimain.root=tk.Tk()
     win.withdraw()
+    uimain.mainwidgets["analyzer"]=BoardAnalyzer()
     setIcons(uimain)
     setIntroWindow(uimain)
 
@@ -447,14 +449,17 @@ def aiPlay(WD):
         addStone(WD,8,8)
         return
 
-    turn_group,turn=anl.main_play(WD["xyList"][:WD["cursor"]])
-    xyT,arrayT=anl.get_result(turn_group[turn].D1)
+    #turn_group,turn=anl.main_play(WD["xyList"][:WD["cursor"]])
+    space_group,turn=WD["analyzer"].main_play(WD["xyList"][:WD["cursor"]])
+    print(space_group,turn)
+    #xyT,arrayT=anl.get_result(turn_group[turn].D1)
+    xyT,arrayT=WD["analyzer"].get_data(space_group.turn_member(turn).D1)
 
     xyL=bml.get_xy(xyT,arrayT,"11")
     x,y=random.choice(xyL)
     
-    print(f"{[*map(int,turn_group[turn].D1[(x,y)].get_space_matrix())]}")
-    print(f"({x+1},{y+1}),{turn_group[turn].D1[(x,y)].max_abs}")
+    print(f"{[*map(int,space_group.turn_member(turn).D1[(x,y)].space_matrix)]}")
+    print(f"({x+1},{y+1}),{space_group.turn_member(turn).D1[(x,y)].max_abs}")
 
     addStone(WD,x+1,y+1)
 
@@ -609,11 +614,13 @@ def refreshOption(WD):
     if 1-WD["optRadioVal"].get():
         return
     
-    turn_group,turn=anl.main_play(WD["xyList"][:WD["cursor"]])
-    element_dict=get_D1_elements(turn_group,turn)
+    #turn_group,turn=anl.main_play(WD["xyList"][:WD["cursor"]])
+    space_group,turn=WD["analyzer"].main_play(WD["xyList"][:WD["cursor"]])
+    print(space_group,turn)
+    element_dict=get_D1_elements(space_group,turn)
 
     opt_normalL,opt_triggerL=(getOption1_2,getOption2_S)[bool(WD["contentL2_S"])](WD,element_dict)
-    banL=getBanL(turn_group[anl.BLACK].ban_dict)
+    banL=getBanL(space_group.ban_dict)
     print(banL)
 
     setOptionMark(WD,opt_normalL,opt_triggerL)
@@ -635,7 +642,7 @@ def getOption2_S(WD,element_dict):
         L1,L2=element_dict[T1],element_dict[T2]
         for i,info1 in enumerate(L1):
             for j,info2 in enumerate(L2):
-                if info1["xyT"]==info2["xyT"] and anl.compare_parents(info1["parents"],info2["parents"]):
+                if info1["xyT"]==info2["xyT"] and info1["parents"].compare(info2["parents"]):
                     (normalS,triggerS)[bool(info1["targetL"])].add((info1["xyT"],tuple(info1["targetL"])))
                     (normalS,triggerS)[bool(info2["targetL"])].add((info2["xyT"],tuple(info2["targetL"])))
 
@@ -691,10 +698,10 @@ def getContentName(T):
         s+=f"방어 {T[4]} :: {T[2]+1}등급"
     return s
 
-def get_D1_elements(turn_group,turn):
+def get_D1_elements(space_group,turn):
     element_dict={}
 
-    for space in turn_group[turn].D1.values():
+    for space in space_group.turn_member(turn).D1.values():
         xyT=space.xyT
         for element in space.elementL:
             parents,lineT,shape_N,stance,shape_type,element_type=element.get_vars()
@@ -713,7 +720,9 @@ def refreshCount(WD):
     WD["countLabel"].config(text=f"{WD['cursor']}/{len(WD['xyList'])}")
     WD["checkLabel"].config(text=f"check point : {('None',cp)[bool(cp)]}")
     WD["turnLabel"].config(text=f"turn : {('BLACK','WHITE')[WD['cursor']%2]}")
-    WD["end"]=bool(anl.end_check(WD["xyList"][:WD["cursor"]])[1-WD["cursor"]%2])
+    #print(WD["analyzer"].end_check(WD["xyList"][:WD["cursor"]])[1-WD["cursor"]%2])
+    #print(bool(WD["analyzer"].end_check(WD["xyList"][:WD["cursor"]])[1-WD["cursor"]%2]))
+    WD["end"]=bool(WD["analyzer"].end_check(WD["xyList"][:WD["cursor"]])[1-WD["cursor"]%2])
 
 def insert_Circle(WD,x,y,r,color):
     return WD["canvas"].create_oval(x*BW/16-r,y*BH/16-r,x*BW/16+r,y*BH/16+r,fill=color)
