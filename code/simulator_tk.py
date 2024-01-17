@@ -452,7 +452,6 @@ def aiPlay(WD):
 
     #turn_group,turn=anl.main_play(WD["xyList"][:WD["cursor"]])
     space_group,turn=WD["analyzer"].main_play(WD["xyList"][:WD["cursor"]])
-    print(space_group,turn)
     #xyT,arrayT=anl.get_result(turn_group[turn].D1)
     xyT,arrayT=WD["analyzer"].get_data(space_group.turn_member(turn).D1)
 
@@ -617,7 +616,6 @@ def refreshOption(WD):
     
     #turn_group,turn=anl.main_play(WD["xyList"][:WD["cursor"]])
     space_group,turn=WD["analyzer"].main_play(WD["xyList"][:WD["cursor"]])
-    print(space_group,turn)
     element_dict=get_D1_elements(space_group,turn)
 
     opt_normalL,opt_triggerL=(getOption1_2,getOption2_S)[bool(WD["contentL2_S"])](WD,element_dict)

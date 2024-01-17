@@ -28,7 +28,7 @@ class NormalSpace(Space):
         self.normal_trigger_nest(e1,e2)
 
     def normal_nest(self,e1,e2):
-        if self.double_check(e1,e2,stance=ATTACK):
+        if self.double_check(e1,e2,stance=ATTACK,element_type=NORMAL):
             return self.attack_nest(e1,e2)
 
         '''
