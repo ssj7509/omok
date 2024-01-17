@@ -8,7 +8,9 @@ class BanCheckSpace(Space):
         self.release_val=False
 
     def add_element(self,new_e):
-        if self.check_parents_nest(new_e) or self.six_check(new_e):
+        self.six_check(new_e)
+        
+        if self.check_parents_nest(new_e):
             return
         
         self.elementL.append(new_e)

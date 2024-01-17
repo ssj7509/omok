@@ -82,19 +82,21 @@ class NormalSpace(Space):
             return False
         
         if self.double_check(e1,e2,shape_N=3):
-            return self.line_44(e1,e2,diff_set1,diff_set2)
+            return self.line_44(e1,e2)
 
         else:
-            return self.line_build_3(e1,e2,diff_set1,diff_set2)
+            return self.line_build_3(e1,e2)
 
-    def line_44(self,e1,e2,diff_set1,diff_set2):
+    def line_44(self,e1,e2):
         if self.turn==BLACK:
             return False
 
         self.adjust_abs(e1,e2)
         return True
         
-    def line_build_3(self,e1,e2,diff_set1,diff_set2):
+    def line_build_3(self,e1,e2):
+        e1_targetS,e2_targetS,diff_set1,diff_set2=self.get_target_set(e1,e2)
+        
         inter_set=e1_targetS&e2_targetS
         
         v1,v2=map(lambda e,ds:len(ds)-1+len(inter_set)>=3-e.shape_N,(e1,e2),(diff_set1,diff_set2))

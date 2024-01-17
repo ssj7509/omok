@@ -4,6 +4,7 @@ import tkinter.font as tkfont
 import tkinter.messagebox as tkmsg
 from tkinter import filedialog,simpledialog
 from tk_header import *
+from board_analyzer.header import *
 
 import math,random
 
@@ -705,9 +706,9 @@ def get_D1_elements(space_group,turn):
         xyT=space.xyT
         for element in space.elementL:
             parents,lineT,shape_N,stance,shape_type,element_type=element.get_vars()
-            targetL=element.targetL if element_type==anl.TRIGGER else []
+            targetL=element.targetL if element_type==TRIGGER else []
 
-            key=(anl.D1,stance,shape_type,element_type,shape_N)
+            key=(D1,stance,shape_type,element_type,shape_N)
             
             if not element_dict.get(key):
                 element_dict[key]=[]
