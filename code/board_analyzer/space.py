@@ -27,7 +27,8 @@ class Space(ABC):
 
     def parents_nest(self,e1,e2,deleteL):
         if e1.parents.compare(e2.parents) or \
-            not self.compare_attribute(e1,e2,lambda x:(x.element_type,x.stance)): 
+            not self.compare_attribute(e1,e2,lambda e:(e.element_type,e.stance)) \
+            or e1.element_type==TRIGGER: 
             return False
 
         te1,te2=self.get_sorted_element(e1,e2)

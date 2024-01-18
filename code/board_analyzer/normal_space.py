@@ -9,7 +9,7 @@ class NormalSpace(Space):
         if self.check_parents_nest(new_e):
             return
 
-        self.max_abs=max(self.max_abs,self.get_abs_val(new_e.abs_material))
+        self.max_abs=max(self.max_abs,self.get_origin_abs(new_e))
         self.elementL.append(new_e)
     
     def add_trigger(self,e):
@@ -28,14 +28,16 @@ class NormalSpace(Space):
         self.normal_trigger_nest(e1,e2)
 
     def normal_nest(self,e1,e2):
-        if self.double_check(e1,e2,stance=ATTACK,element_type=NORMAL):
-            return self.attack_nest(e1,e2)
+        if not self.double_check(e1,e2,element_type=NORMAL):
+            return
 
+        if self.double_check(e1,e2,stance=ATTACK):
+            self.attack_nest(e1,e2)
+            
         '''
-        elif self.double_check(e1,e2,stance=DEFENSE):
-            return self.defense_nest(e1,e2)
+        if self.double_check(e1,e2,stance=DEFENSE):
+            self.defense_nest(e1,e2)
         '''
-        return False
 
     def normal_trigger_nest(self,e1,e2):
         if not ((e1.element_type,e2.element_type) in ((NORMAL,TRIGGER),(TRIGGER,NORMAL)) and \
@@ -44,7 +46,7 @@ class NormalSpace(Space):
 
         normal,trigger=((e1,e2),(e2,e1))[e1.element_type==TRIGGER]
 
-        if self.get_predict_abs(normal.abs_material)<self.get_predict_abs(trigger.abs_material):
+        if self.get_predict_abs(normal)<self.get_predict_abs(trigger):
             return
 
         if self.turn==BLACK and tuple(map(lambda e:(e.shape_N,e.shape_type),(normal,trigger))) \
@@ -54,7 +56,7 @@ class NormalSpace(Space):
         self.activate_trigger(normal,trigger)
     
     def attack_nest(self,e1,e2):
-        e1,e2=sorted((e1,e2),key=lambda e:(e.abs_val,e.shape_N,-e.shape_type))
+        e1,e2=sorted((e1,e2),key=lambda e:(self.get_origin_abs(e),e.shape_N,-e.shape_type))
         
         t=((e1.shape_N,e1.shape_type),(e2.shape_N,e2.shape_type))
         
@@ -72,7 +74,33 @@ class NormalSpace(Space):
         elif self.double_check(e1,e2,shape_N=2,shape_type=OPENED):
             self.max_abs=max(self.max_abs,2*self.turn)
             self.defense_nest(1.5*(self.turn))
+    '''
+    def attack_nest(self,e1,e2):
+        e1,e2=sorted((e1,e2),key=lambda e:(e.abs_val,e.shape_N,-e.shape_type))
 
+        self.max_abs=max(self.max_abs,self.get_nest_abs(e1,e2))
+    '''
+    '''
+    def defense_nest(self,e1,e2):
+        nest_abs=self.get_nest_abs(e1,e2)
+
+        if not nest_abs:
+            return
+
+        #candidate_space=
+        #cal_candidate_space
+
+        if candidate_state==CASE1:
+            for xyT in candidate_space:
+                #xyT space <- nest_abs
+
+        elif candidate_state==CASE2:
+            self.max_abs=max(self.max_abs,nest_abs+1)
+
+        if CASE1 or CASE2:
+            self.defense_nest_val=True
+            
+    '''
     def defense_nest(self,absN):
         defense_space=self.get_space(self.xyT,1)
         defense_space.max_abs=max(defense_space.max_abs,absN)
@@ -134,9 +162,7 @@ class NormalSpace(Space):
 
         return space_dict[xyT]
 
-    def get_abs_val(self,abs_material):
-        shape_N,stance,shape_type=abs_material
-        
+    def get_element_abs(self,shape_N,stance,shape_type):
         r=1
 
         if shape_N==5 and stance==ATTACK:
@@ -154,10 +180,18 @@ class NormalSpace(Space):
 
         return r
 
-    def get_predict_abs(self,abs_material):
-        shape_N,stance,shape_type=abs_material
+    def get_origin_abs(self,e):
+        shape_N,stance,shape_type=e.abs_material
 
-        return self.get_abs_val((shape_N+1,stance,shape_type))
+        return self.get_element_abs(shape_N,stance,shape_type)
+
+    def get_predict_abs(self,e):
+        shape_N,stance,shape_type=e.abs_material
+
+        return self.get_element_abs(shape_N+1,stance,shape_type)
+
+    def get_nest_abs(self,e1,e2):
+        return min(self.predict_abs(e1),self.predict_abs(e2)-VAL_DISTANCE)
 
     @property
     def space_matrix(self):

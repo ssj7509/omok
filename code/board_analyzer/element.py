@@ -10,29 +10,10 @@ class Element:
         self.shape_type=option_p.shape_type
         self.element_type=option_p.element_type
         self.lineT=lineT
-        self.abs_val=self.get_abs_val(self.shape_N,self.stance,self.shape_type)
 
     def set_targetL(self,targetL):
         self.targetL=targetL
         self.valueL=[]
-
-    def get_abs_val(self,shape_N,stance,shape_type):
-        r=1
-
-        if shape_N==5 and stance==ATTACK:
-            r=13
-        elif shape_N==5 and stance==DEFENSE:
-            r=11
-        elif shape_N==4 and stance==ATTACK:
-            r=9
-        elif shape_N==4 and stance==DEFENSE:
-            r=7
-        elif shape_N==3 and stance==ATTACK and shape_type==OPENED:
-            r=5
-        elif shape_N==3 and stance==DEFENSE and shape_type in (DEFENSE1,DEFENSE3):
-            r=3
-
-        return r
 
     def get_vars(self):
         return self.parents,self.lineT,self.shape_N,self.stance,self.shape_type,self.element_type

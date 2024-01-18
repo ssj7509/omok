@@ -49,6 +49,9 @@ SCAN=0
 OPTION=1
 MEASURE=2
 
+#space abs option
+VAL_DISTANCE=2
+
 #matrix
 MATRIX_SIZE=36
 

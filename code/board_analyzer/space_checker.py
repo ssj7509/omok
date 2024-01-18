@@ -183,26 +183,6 @@ class SpaceChecker(OneDimensionalAnalyzer):
                 result+=self.index_filter(tL,exceptL+result)
         return result
 
-    def trigger_filter(self,opened_rangeL,closed_rangeL,banL,checkL,exceptL):
-        OT_L,CT_L=[],[]
-        
-        for trigger in opened_indexL:
-            op_targetL=self.index_filter(self.get_validlist(OA_L,4,trigger),exceptL+[trigger])
-            cl_targetL=self.index_filter(self.get_validlist(OACA,5,trigger),exceptL+op_targetL+[trigger])
-            
-            if op_targetL:
-                OT_L.append((trigger,op_targetL))
-            if cl_targetL:
-                CT_L.append((trigger,cl_targetL))
-
-        for trigger in CA_L:
-            targetL=self.index_filter(self.get_validlist(OACA,5,trigger),exceptL+[trigger])
-
-            if targetL:
-                CT_L.append((trigger,targetL))
-
-        return OT_L,CT_L
-
     def index_filter(self,indexL,targetL):
         return list(filter(lambda index:index not in targetL,indexL))
 
