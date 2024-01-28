@@ -11,3 +11,10 @@ class DimensionGroup:
 
     def set_check_dict(self):
         self.check_dict=Dict()
+
+    def get_dimension1_dict(self):
+        return self.D1
+
+    def get_check_dict(self):
+        return self.check_dict
+

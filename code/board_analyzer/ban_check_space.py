@@ -44,13 +44,12 @@ class BanCheckSpace(Space):
         return 1
             
     def get_bancheck_space(self,xyT):
-        check_dict=self.space_group.black.check_dict
-        check_dict.update_key(xyT,BanCheckSpace,p=(xyT,self.turn,self.space_group))
+        self.space_group.update_check_dict(xyT,BLACK,BanCheckSpace)
 
-        return check_dict[xyT]
-
+        return self.space_group.get_check_space(xyT,BLACK)
+        
     def set_ban_space(self,xyT,ban_name):
-        ban_space=self.get_bancheck_space(self.xyT)
+        ban_space=self.get_bancheck_space(xyT)
         ban_space.ban_name=ban_name
 
     def ban_nest(self,e1,e2):

@@ -1,36 +1,40 @@
 from .header import *
 
 class Sibling:
-    def __init__(self):
-        self.family=Family()
+    def __init__(self): 
+        self.opened_attack=set()
+        self.closed_attack=set()
 
-    def add_element(self,xyT,option_p):
-        self.family.add_family_element(xyT,option_p)
+        self.complete_defense=set()
+        self.incomplete_defense=set()
+        
+        self.entire_defense=set()
+        self.defense=[set()for _ in range(4)]
 
-    def get_valid_attackS(self):
-        return self.valid_attackS
+    def add_sibling(self,e):
+        if e.stance==ATTACK:
+            self.add_attack(e)
 
-    def get_invalid_attackS(self):
-        return self.invalid_attackS
+        elif e.stance==DEFENSE:
+            self.add_defense(e)
 
-    def get_valid_defenseS(self):
-        return self.valid_defenseS
+    def add_attack(self,e):
+        if e.shape_type==OPENED:
+            self.opened_attack.add(e.xyT)
 
-    def get_invalid_defense(self):
-        return self.invalid_defenseS
+        elif e.shape_type==CLOSED:
+            self.closed_attack.add(e.xyT)
 
-class Family:
-    def __init__(self):
-        self.valid_attackS=set()
-        self.valid_defenseS=set()
-        self.invalid_attackS=set()
-        self.invalid_defenseS=set()
-       
-    def add_family_element(self,xyT,option_p):
-        (self.add_attack_family,self.add_defense_family)[option_p.stance==DEFENSE](xyT,option_p)
+    def add_defense(self,e):
+        if e.shape_type==DEFENSE5:
+            return
 
-    def add_attack_family(self,xyT,option_p):
-        (self.valid_attackS,self.invalid_attackS)[option_p.shape_type==CLOSED].add(xyT)
+        if e.shape_type in (DEFENSE1,DEFENSE2):
+            self.complete_defense.add(e.xyT)
 
-    def add_defense_family(self,xyT,option_p):
-        (self.valid_defenseS,self.invalid_defenseS)[option_p.shape_type==DEFENSE5].add(xyT)
+        elif e.shape_type in (DEFENSE3,DEFENSE4):
+            self.incomplete_defense.add(e.xyT)
+
+        self.entire_defense.add(e.xyT)
+        self.defense[e.shape_type].add(e.xyT)
+    

@@ -18,7 +18,7 @@ class EndChecker(OneDimensionalAnalyzer):
         check_dict=scan_p.space_group.turn_member(scan_p.turn).check_dict
         parents=self.get_parents(allyL,scan_p)
 
-        for xyT in parents.posT:
+        for xyT in parents:
             check_dict[xyT]=1
         
 

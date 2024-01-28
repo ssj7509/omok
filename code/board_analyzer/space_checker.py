@@ -4,8 +4,6 @@ from .header import *
 from .dimension1 import OneDimensionalAnalyzer
 from .parameter_set import ParameterSet
 from .element import Element
-from .parents import Parents
-from .sibling import Sibling
 
 class SpaceChecker(OneDimensionalAnalyzer):
     def scan_space(self,allyL,scan_p):
@@ -33,10 +31,10 @@ class SpaceChecker(OneDimensionalAnalyzer):
         return [*range(measure_p.dr_left,measure_p.dr_right+1)]
 
     def get_banlist(self,shape_N,scan_p):
-        if shape_N==4:
-            return [],[]
-        
         banL=[i for i,xy in enumerate(scan_p.check_line) if xy in scan_p.space_group.ban_dict]
+
+        if shape_N==4:
+            return (([],[]),([],banL))[scan_p.turn]
         
         return ((banL,[]),([],banL))[scan_p.turn]
 
@@ -111,17 +109,10 @@ class SpaceChecker(OneDimensionalAnalyzer):
             self.set_dimension1_element(index,parents,option_turn,option_p,scan_p)
 
     def set_dimension1_element(self,index,parents,option_turn,option_p,scan_p):
-        xyT,element_obj=self.get_element_obj(index,parents,option_p,scan_p)
+        xyT,element=self.get_element_obj(index,parents,option_p,scan_p)
 
-        space_dict=scan_p.space_group.turn_member(option_turn).D1
-        space_dict.update_key(xyT,self.space_obj,p=(xyT,option_turn,scan_p.space_group))
-
-        sibling_key=parents.sibling_key
-        sibling_dict=scan_p.space_group.sibling_dict
-        sibling_dict.update_key(sibling_key,Sibling)
-
-        space_dict[xyT].add_element(element_obj)
-        sibling_dict[sibling_key].add_element(xyT,option_p)
+        scan_p.space_group.update_space(xyT,option_turn,self.space_obj)
+        scan_p.space_group.update_element(xyT,option_turn,element)
 
     def get_element_obj(self,index,parents,option_p,scan_p):
         if option_p.element_type==NORMAL:

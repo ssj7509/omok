@@ -2,15 +2,14 @@ from abc import abstractmethod
 
 from .header import *
 from .parameter_set import ParameterSet
-from .parents import Parents
 from .singleton import SingletonABC
 
 class OneDimensionalAnalyzer(metaclass=SingletonABC):
     def set_dimension1_space(self,space_group):
-        for space in space_group.black.D1.values():
+        for space in space_group.get_dimension1_turn(BLACK).values():
             space.set_element()
 
-        for space in space_group.white.D1.values():
+        for space in space_group.get_dimension1_turn(WHITE).values():
             space.set_element()
     
     def analyze(self,space_group,check_list,stone,turn):
@@ -52,9 +51,7 @@ class OneDimensionalAnalyzer(metaclass=SingletonABC):
         return ((option and xyT in stone.entire) or xyT in stone.turn_member(option^scan_p.turn))
 
     def get_parents(self,allyL,scan_p):
-        posT=tuple(scan_p.check_line[x]for x in allyL)
-        
-        return Parents(posT,scan_p.lineT)
+        return tuple(scan_p.check_line[x]for x in allyL)
 
     def min_line(self,T):
         if T[2]==0:

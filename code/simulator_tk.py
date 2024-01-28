@@ -641,7 +641,7 @@ def getOption2_S(WD,element_dict):
         L1,L2=element_dict[T1],element_dict[T2]
         for i,info1 in enumerate(L1):
             for j,info2 in enumerate(L2):
-                if info1["xyT"]==info2["xyT"] and info1["parents"].compare(info2["parents"]):
+                if info1["xyT"]==info2["xyT"] and compare_parents(info1["parents"],info2["parents"]):
                     (normalS,triggerS)[bool(info1["targetL"])].add((info1["xyT"],tuple(info1["targetL"])))
                     (normalS,triggerS)[bool(info2["targetL"])].add((info2["xyT"],tuple(info2["targetL"])))
 
@@ -756,6 +756,10 @@ def test_del(WD):
         return
     x,y=WD["checkX"],WD["checkY"]
     WD["canvas"].delete(WD["xyObjDict"][f"mark{x}_{y}"])
+
+def compare_parents(parents1,parents2):
+    union=parents1+parents2
+    return len(union)==len(set(union))
 
 def closeWindow(uimain,win):
     win.destroy()
