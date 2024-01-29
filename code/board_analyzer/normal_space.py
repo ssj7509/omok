@@ -164,7 +164,7 @@ class NormalSpace(Space):
         if self.double_check(e1,e2,shape_N=3):
             return self.line_44(e1,e2)
 
-        else:
+        elif max(e1.shape_N,e2.shape_N)<=3:
             return self.line_build_3(e1,e2)
 
     def line_44(self,e1,e2):

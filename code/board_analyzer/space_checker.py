@@ -51,10 +51,13 @@ class SpaceChecker(OneDimensionalAnalyzer):
         OA_L=self.multiple_filter(opened_rangeL,exceptL+banL,checkL,1)
         CA_L=self.index_filter(closed_rangeL,OA_L+exceptL+banL)
         OACA=OA_L+CA_L
+
+        OT_indexL=self.index_filter(opened_rangeL,trigger_exceptL)
+        CT_indexL=self.index_filter(closed_rangeL,OT_indexL+trigger_exceptL)
         
         OT_L,CT_L=[],[]
         
-        for trigger in self.index_filter(opened_rangeL,trigger_exceptL):
+        for trigger in OT_indexL:
             op_targetL=self.index_filter(self.get_validlist(OA_L,4,trigger),exceptL+[trigger])
             cl_targetL=self.index_filter(self.get_validlist(OACA,5,trigger),exceptL+op_targetL+[trigger])
             
@@ -63,7 +66,7 @@ class SpaceChecker(OneDimensionalAnalyzer):
             if cl_targetL:
                 CT_L.append((trigger,cl_targetL))
 
-        for trigger in self.index_filter(closed_rangeL,trigger_exceptL):
+        for trigger in CT_indexL:
             targetL=self.index_filter(self.get_validlist(OACA,5,trigger),exceptL+[trigger])
 
             if targetL:
