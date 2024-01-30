@@ -1,5 +1,5 @@
 # Board Analyzer UML
-![7 drawio](https://github.com/ssj7509/omok/assets/87068596/58a99ad7-47fd-4ad5-82c2-f38134adf20d)
+![7 drawio](https://github.com/ssj7509/omok/assets/87068596/503439d8-37c9-4954-8269-86f0758b8677)
 # 구현 기능
 - 열림 닫힘 판별 : 오목에서 현재 돌의 형태를 연속으로 이어진 4개의 형태까지 발전시켰을 때, 양 옆이 모두 비어있는 경우가 있으면 열린 공격이다.
 <br><br>
